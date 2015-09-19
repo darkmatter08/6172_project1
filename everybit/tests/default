@@ -60,3 +60,27 @@ e 00001011
 r 0 8 -11
 e 01011000
 
+
+# 3: regessision tests
+# Unravelling twice
+t 3
+
+n 110
+r 0 3 1 
+e 011 
+
+# #: Odd length string tests
+t 4
+
+n 1011011
+r 0 7 1
+e 1101101
+
+r 0 7 -1
+e 0110111
+
+r 0 7 2
+e 1110110
+
+r 0 7 -2
+e 1101110
