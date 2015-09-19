@@ -174,7 +174,7 @@ void bitarray_set(bitarray_t *const bitarray,
            (value ? bitmask(bit_index) : 0);
 }
 
-void bitarray_rotate(bitarray_t *const bitarray,
+void bitarray_rotate_slow(bitarray_t *const bitarray,
                      const size_t bit_offset,
                      const size_t bit_length,
                      const ssize_t bit_right_amount) {
@@ -224,3 +224,53 @@ static char bitmask(const size_t bit_index) {
   return 1 << (bit_index % 8);
 }
 
+// -----------
+
+
+void bitarray_swap(bitarray_t *const bitarray, const size_t index1, const size_t index2) {
+  bool value1 = bitarray_get(bitarray, index1);
+  bitarray_set(bitarray, index1, bitarray_get(bitarray, index2));
+  bitarray_set(bitarray, index2, value1);
+}
+
+void bitarray_reverse(bitarray_t *const bitarray,
+                      const size_t bit_offset,
+                      const size_t bit_length){
+  for(int i = 0; i < bit_length / 2; i++) {
+    assert(bit_offset + bit_length - i - 1 < bitarray->bit_sz);
+    assert(0 <= bit_offset + i);
+    bitarray_swap(bitarray, bit_offset + i, bit_offset + bit_length - i - 1);
+  }
+}
+
+void bitarray_rotate_fast(bitarray_t *const bitarray,
+                     const size_t bit_offset,
+                     const size_t bit_length,
+                     const ssize_t bit_right_amount){
+
+  // TODO: Check the bit_right_amount = 0 case
+  ssize_t divide;
+  ssize_t bit_right_amount_new = bit_right_amount % bit_length;
+  if(bit_right_amount_new > 0) {
+    divide = bit_offset + bit_length - bit_right_amount_new;
+  } else {
+    divide = bit_offset + bit_right_amount_new;
+    if(divide < 0)
+      divide = divide + bit_length;
+  }
+
+
+  assert(bit_offset <= divide);
+  assert(divide <= bit_offset + bit_length - 1);
+  // TODO: Check if we need -1
+  bitarray_reverse(bitarray, bit_offset, divide - bit_offset);
+  bitarray_reverse(bitarray, divide, bit_offset + bit_length - divide);
+  bitarray_reverse(bitarray, bit_offset, bit_length);
+}
+
+void bitarray_rotate(bitarray_t *const bitarray,
+                     const size_t bit_offset,
+                     const size_t bit_length,
+                     const ssize_t bit_right_amount){
+  bitarray_rotate_fast(bitarray, bit_offset, bit_length, bit_right_amount);
+}

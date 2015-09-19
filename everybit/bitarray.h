@@ -54,6 +54,13 @@ void bitarray_set(bitarray_t *const bitarray,
                   const size_t bit_index,
                   const bool value);
 
+// Swaps the values as the given indeces in the bitarray
+void bitarray_swap(bitarray_t *const bitarray, const size_t index1, const size_t index2);
+
+// Reverses a subarray
+void bitarray_reverse(bitarray_t *const birarry,
+                      const size_t bit_offset,
+                      const size_t bit_length);
 // Rotates a subarray.
 //
 // bit_offset is the index of the start of the subarray
@@ -78,9 +85,18 @@ void bitarray_set(bitarray_t *const bitarray,
 // bitarray_rotate(ba, 2, 5, 2) rotates the third through seventh
 // (inclusive) bits right two places.  After the rotation, ba contains the
 // byte 0b10110100.
-void bitarray_rotate(bitarray_t *const bitarray,
+void bitarray_rotate_slow(bitarray_t *const bitarray,
                      const size_t bit_offset,
                      const size_t bit_length,
                      const ssize_t bit_right_amount);
 
+void bitarray_rotate_fast(bitarray_t *const bitarray,
+                     const size_t bit_offset,
+                     const size_t bit_length,
+                     const ssize_t bit_right_amount);
+
+void bitarray_rotate(bitarray_t *const bitarray,
+                     const size_t bit_offset,
+                     const size_t bit_length,
+                     const ssize_t bit_right_amount);
 #endif  // BITARRAY_H
