@@ -69,6 +69,10 @@ n 110
 r 0 3 1 
 e 011 
 
+# Modulo negative values
+n 10000101
+r 0 8 9
+e 11000010
 # #: Odd length string tests
 t 4
 

@@ -250,14 +250,12 @@ void bitarray_rotate_fast(bitarray_t *const bitarray,
 
   // TODO: Check the bit_right_amount = 0 case
   ssize_t divide;
-  /*ssize_t bit_right_amount_new = bit_right_amount % bit_length;*/
   if(bit_right_amount > 0) {
     divide = bit_length - bit_right_amount;
   } else {
     divide = -bit_right_amount;
   }
-  divide = (divide % bit_length) + bit_offset;
-
+  divide = modulo(divide, bit_length) + bit_offset;
 
   assert(bit_offset <= divide);
   assert(divide <= bit_offset + bit_length - 1);
