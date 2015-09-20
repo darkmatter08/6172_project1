@@ -49,16 +49,30 @@ size_t bitarray_get_bit_sz(const bitarray_t *const bitarray);
 // index.
 bool bitarray_get(const bitarray_t *const bitarray, const size_t bit_index);
 
+uint64_t bitarray_get_word(const bitarray_t *const bitarray, const size_t bit_index);
+
 // Indexes into a bit array, setting the bit at the specified zero-based index.
 void bitarray_set(bitarray_t *const bitarray,
                   const size_t bit_index,
                   const bool value);
+
+void bitarray_set_word(bitarray_t *const bitarray,
+                  const size_t bit_index,
+                  const uint64_t value);
 
 // Swaps the values as the given indeces in the bitarray
 void bitarray_swap(bitarray_t *const bitarray, const size_t index1, const size_t index2);
 
 // Reverses a subarray
 void bitarray_reverse(bitarray_t *const birarry,
+                      const size_t bit_offset,
+                      const size_t bit_length);
+
+void bitarray_reverse_slow(bitarray_t *const bitarray,
+                      const size_t bit_offset,
+                      const size_t bit_length);
+
+void bitarray_reverse_fast(bitarray_t *const bitarray,
                       const size_t bit_offset,
                       const size_t bit_length);
 // Rotates a subarray.
@@ -99,4 +113,14 @@ void bitarray_rotate(bitarray_t *const bitarray,
                      const size_t bit_offset,
                      const size_t bit_length,
                      const ssize_t bit_right_amount);
+
+const unsigned char BitReverseTable256[256] = {
+  #   define R2(n)     n,     n + 2*64,     n + 1*64,     n + 3*64
+  #   define R4(n) R2(n), R2(n + 2*16), R2(n + 1*16), R2(n + 3*16)
+  #   define R6(n) R4(n), R4(n + 2*4 ), R4(n + 1*4 ), R4(n + 3*4 )
+      R6(0), R6(2), R6(1), R6(3)
+};
+
+uint64_t reverse_lookup (uint64_t* to_reverse);
+
 #endif  // BITARRAY_H

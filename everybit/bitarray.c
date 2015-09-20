@@ -28,11 +28,14 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #include <sys/types.h>
+#include <stdint.h>
 
 #include "./bitarray.h"
 
+#define WORDSIZE __WORDSIZE
 
 // ********************************* Types **********************************
 
@@ -173,6 +176,23 @@ void bitarray_set(bitarray_t *const bitarray,
       (bitarray->buf[bit_index / 8] & ~bitmask(bit_index)) |
            (value ? bitmask(bit_index) : 0);
 }
+/*
+ * caller has to only pass bit_index on byte/char boundaries. bit_index+WORDSIZE cannot go past end of array
+ */
+uint64_t bitarray_get_word(const bitarray_t *const bitarray, const size_t bit_index) {
+  assert(bit_index < bitarray->bit_sz);
+  assert(bit_index+WORDSIZE < bitarray->bit_sz);
+  // assert(bitarray->buf + bit_index + WORDSIZE < bitarray->buf + bitarray->bit_sz);
+
+  // res = *((uint64_t*) &(bitarray->buf[bit_index / 8])); //sizeof(char) * (bit_index / 8)
+  return *((uint64_t*) (bitarray->buf + (bit_index / 8)));
+}
+
+void bitarray_set_word(bitarray_t *const bitarray,
+                  const size_t bit_index,
+                  const uint64_t value) {
+  *((uint64_t*) (bitarray->buf + (bit_index / 8))) = value;
+}
 
 void bitarray_rotate_slow(bitarray_t *const bitarray,
                      const size_t bit_offset,
@@ -235,9 +255,31 @@ void bitarray_swap(bitarray_t *const bitarray, const size_t index1, const size_t
 void bitarray_reverse(bitarray_t *const bitarray,
                       const size_t bit_offset,
                       const size_t bit_length) {
+  bitarray_reverse_fast(bitarray, bit_offset, bit_length);
+}
+
+void bitarray_reverse_slow(bitarray_t *const bitarray,
+                      const size_t bit_offset,
+                      const size_t bit_length) {
   int i = bit_length / 2;
   while (i--) {
      bitarray_swap(bitarray, bit_offset + i, bit_offset + bit_length - i - 1);
+  }
+}
+
+void bitarray_reverse_fast(bitarray_t *const bitarray,
+                      const size_t bit_offset,
+                      const size_t bit_length) {
+  if(bit_length >= 2*WORDSIZE) { // enough on ends
+    uint64_t beg = bitarray_get_word(bitarray, bit_offset);
+    uint64_t end = bitarray_get_word(bitarray, bit_offset + bit_length - WORDSIZE);
+
+    bitarray_set_word(bitarray, bit_offset, reverse_lookup(&end));
+    bitarray_set_word(bitarray, bit_offset + bit_length - WORDSIZE, reverse_lookup(&beg));
+
+    bitarray_reverse_fast(bitarray, bit_offset + WORDSIZE, bit_length - 2*WORDSIZE);
+  } else {
+    bitarray_reverse_slow(bitarray, bit_offset, bit_length);
   }
 }
 
@@ -261,4 +303,24 @@ void bitarray_rotate(bitarray_t *const bitarray,
                      const size_t bit_length,
                      const ssize_t bit_right_amount) {
   bitarray_rotate_fast(bitarray, bit_offset, bit_length, bit_right_amount);
+}
+
+uint64_t reverse_lookup (uint64_t* to_reverse) {
+  uint64_t *v = to_reverse; // reverse 32-bit value, 8 bits at time
+
+  // Option 1:
+  *to_reverse = 
+      (BitReverseTable256[*v & 0xff] << 56) | 
+      (BitReverseTable256[(*v >> 8) & 0xff] << 48) | 
+      (BitReverseTable256[(*v >> 16) & 0xff] << 40) |
+      (BitReverseTable256[(*v >> 24) & 0xff] << 32) | 
+      (BitReverseTable256[(*v >> 32) & 0xff] << 24) |
+      (BitReverseTable256[(*v >> 40) & 0xff] << 16) |
+      (BitReverseTable256[(*v >> 48) & 0xff] << 8) |
+      (BitReverseTable256[(*v >> 56) & 0xff]);
+      // (BitReverseTable256[*v & 0xff] << 24) | 
+      // (BitReverseTable256[(*v >> 8) & 0xff] << 16) | 
+      // (BitReverseTable256[(*v >> 16) & 0xff] << 8) |
+      // (BitReverseTable256[(*v >> 24) & 0xff]);
+  return *to_reverse;
 }
