@@ -76,6 +76,10 @@ void bitarray_reverse_slow(bitarray_t *const bitarray,
 void bitarray_reverse_fast(bitarray_t *const bitarray,
                       const size_t bit_offset,
                       const size_t bit_length);
+
+//void bitarray_reverse_norecurse(bitarray_t *const bitarray,
+                      //size_t bit_offset,
+                      //size_t bit_length);
 // Rotates a subarray.
 //
 // bit_offset is the index of the start of the subarray
@@ -116,5 +120,6 @@ void bitarray_rotate(bitarray_t *const bitarray,
                      const ssize_t bit_right_amount);
 
 uint64_t reverse_lookup (uint64_t to_reverse);
+uint64_t reverse_lookup_fast (uint64_t to_reverse);
 
 #endif  // BITARRAY_H
