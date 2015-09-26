@@ -185,30 +185,28 @@ uint64_t bitarray_get_word(const bitarray_t *const bitarray, const size_t bit_in
 
   uint64_t res = *((uint64_t*) &(bitarray->buf[bit_index / 8])); //sizeof(char) * (bit_index / 8)
   // Potentiall skip these if bit_index % 8 = 0
-  res >>= (bit_index % 8);
-  res |= bitarray->buf[(bit_index/8)+8] >> (8 - (bit_index % 8));
+  if((bit_index % 8) != 0) {
+    res >>= bit_index % 8;
+    res |= ((uint64_t)((unsigned char)(bitarray->buf[(bit_index/8)+8])) & 0xFF) << (56 + (8 - bit_index % 8));
+  }
   return res;
 }
 
 void bitarray_set_word(bitarray_t *const bitarray,
                   const size_t bit_index,
                   const uint64_t value) {
-  uint64_t new_val = value >> (bit_index % 8);
-  uint64_t origin_first_byte = bitarray->buf[bit_index/8] & 0xFF;
-  origin_first_byte >>= (8 - (bit_index % 8));
-  origin_first_byte <<= (8 - (bit_index % 8));
-  new_val |= (origin_first_byte << (WORDSIZE - 8));
+  uint64_t new_val = value << bit_index % 8;
+  uint64_t old_bit = ((unsigned char)(bitarray->buf[bit_index / 8]) << (8 - bit_index % 8)) & 0xFF;
+  old_bit >>= (8 - bit_index % 8);
+  new_val |= old_bit;
 
   *((uint64_t*) &(bitarray->buf[bit_index / 8])) = new_val;
 
-  uint64_t origin_last_byte = bitarray->buf[(bit_index + WORDSIZE)/8] & 0xFF;
-  origin_last_byte <<= bit_index % 8;
-  origin_last_byte >>= bit_index % 8;
-  uint64_t new_last_byte = origin_last_byte & 0xFF;
-  new_last_byte |= (value << ((8 - (bit_index % 8))));
-  // Value stored backwards so shifts are oppsite direction
-
-  bitarray->buf[(bit_index + WORDSIZE)/8] = new_last_byte;
+  unsigned char high_bit = bitarray->buf[(bit_index/8)+8];
+  high_bit >>= bit_index % 8;
+  high_bit <<= bit_index % 8;
+  if((bit_index % 8) != 0)
+    bitarray->buf[(bit_index/8)+8] = high_bit | (value >> (64 - bit_index % 8));
 }
 
 void bitarray_rotate_slow(bitarray_t *const bitarray,
@@ -320,7 +318,6 @@ void bitarray_rotate(bitarray_t *const bitarray,
                      const size_t bit_length,
                      const ssize_t bit_right_amount) {
   bitarray_rotate_fast(bitarray, bit_offset, bit_length, bit_right_amount);
-  /*bitarray_reverse_fast(bitarray, bit_offset, bit_length);*/
 }
 
 const unsigned char BitReverseTable256[256] = {
@@ -330,7 +327,7 @@ const unsigned char BitReverseTable256[256] = {
       R6(0), R6(2), R6(1), R6(3)
 };
 
-uint64_t reverse_lookup (uint64_t to_reverse) {
+inline uint64_t reverse_lookup (uint64_t to_reverse) {
   uint64_t reverse =
       ((uint64_t)(BitReverseTable256[to_reverse & 0xff]) << 56) |
       ((uint64_t)(BitReverseTable256[(to_reverse >> 8) & 0xff]) << 48) |
@@ -340,8 +337,5 @@ uint64_t reverse_lookup (uint64_t to_reverse) {
       ((uint64_t)(BitReverseTable256[(to_reverse >> 40) & 0xff]) << 16) |
       ((uint64_t)(BitReverseTable256[(to_reverse >> 48) & 0xff]) << 8) |
       ((uint64_t)(BitReverseTable256[(to_reverse >> 56) & 0xff]));
-      // (BitReverseTable256[to_reverse & 0xff] << 24) |
-      // (BitReverseTable256[(to_reverse >> 8) & 0xff] << 16) |
-      // (BitReverseTable256[(to_reverse >> 16) & 0xff] << 8) |
-      // (BitReverseTable256[(to_reverse >> 24) & 0xff]);
-  return reverse; }
+  return reverse;
+}
