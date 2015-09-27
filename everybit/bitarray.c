@@ -186,7 +186,7 @@ uint64_t bitarray_get_word(const bitarray_t *const bitarray, const size_t bit_in
   uint64_t res = *((uint64_t*) &(bitarray->buf[bit_index / 8])); //sizeof(char) * (bit_index / 8)
   // Potentiall skip these if bit_index % 8 = 0
   res >>= bit_index % 8;
-  res |= (((uint64_t)((unsigned char)(bitarray->buf[(bit_index/8)+8])) & 0xFF) << (56 + (8 - bit_index % 8)) & -(bit_index % 8));
+  res |= (((uint64_t)((unsigned char)(bitarray->buf[(bit_index/8)+8])) & 0xFF) << (56 + (8 - bit_index % 8)) & -(bit_index % 8 != 0));
   return res;
 }
 
@@ -204,7 +204,7 @@ void bitarray_set_word(bitarray_t *const bitarray,
   high_bit >>= bit_index % 8;
   high_bit <<= bit_index % 8;
   /*if((bit_index % 8) != 0)*/
-    bitarray->buf[(bit_index/8)+8] = high_bit | ((value >> (64 - bit_index % 8)) & -(bit_index % 8));
+    bitarray->buf[(bit_index/8)+8] = high_bit | ((value >> (64 - bit_index % 8)) & -(bit_index % 8 != 0));
 }
 
 void bitarray_rotate_slow(bitarray_t *const bitarray,
@@ -356,15 +356,15 @@ uint64_t reverse_lookup (uint64_t to_reverse) {
   return reverse;
 }
 
-/*uint64_t reverse_lookup_fast(uint64_t to_reverse) {*/
-  /*uint64_t v = to_reverse;*/
+uint64_t reverse_lookup_fast(uint64_t to_reverse) {
+  uint64_t v = to_reverse;
 
-  /*v = ((v >> 1) & 0x5555555555555555) | ((v & 0x5555555555555555) << 1);*/
-  /*v = ((v >> 2) & 0x3333333333333333) | ((v & 0x3333333333333333) << 2);*/
-  /*v = ((v >> 4) & 0x0F0F0F0F0F0F0F0F) | ((v & 0x0F0F0F0F0F0F0F0F) << 4);*/
-  /*v = ((v >> 8) & 0x00FF00FF00FF00FF) | ((v & 0x00FF00FF00FF00FF) << 8);*/
-  /*v = ((v >> 16) & 0x0000FFFF0000FFFF) | ((v & 0x0000FFFF0000FFFF) << 16);*/
+  v = ((v >> 1) & 0x5555555555555555) | ((v & 0x5555555555555555) << 1);
+  v = ((v >> 2) & 0x3333333333333333) | ((v & 0x3333333333333333) << 2);
+  v = ((v >> 4) & 0x0F0F0F0F0F0F0F0F) | ((v & 0x0F0F0F0F0F0F0F0F) << 4);
+  v = ((v >> 8) & 0x00FF00FF00FF00FF) | ((v & 0x00FF00FF00FF00FF) << 8);
+  v = ((v >> 16) & 0x0000FFFF0000FFFF) | ((v & 0x0000FFFF0000FFFF) << 16);
   /*[>v = ((v >> 32) & 0x00000000FFFFFFFF) | ((v & 0x00000000FFFFFFFF) << 32);<]*/
-  /*v = (v >> 32) | (v << 32);*/
-  /*return v;*/
-/*}*/
+  v = (v >> 32) | (v << 32);
+  return v;
+}
