@@ -186,7 +186,9 @@ uint64_t bitarray_get_word(const bitarray_t *const bitarray, const size_t bit_in
   uint64_t res = *((uint64_t*) &(bitarray->buf[bit_index / 8])); //sizeof(char) * (bit_index / 8)
   // Potentiall skip these if bit_index % 8 = 0
   res >>= bit_index % 8;
-  res |= (((uint64_t)((unsigned char)(bitarray->buf[(bit_index/8)+8])) & 0xFF) << (56 + (8 - bit_index % 8)) & -(bit_index % 8 != 0));
+	if((bit_index % 8) != 0) {
+		res |= (((uint64_t)((unsigned char)(bitarray->buf[(bit_index/8)+8])) & 0xFF) << (56 + (8 - bit_index % 8)) & -(bit_index % 8 != 0));
+	}
   return res;
 }
 
@@ -203,8 +205,9 @@ void bitarray_set_word(bitarray_t *const bitarray,
   unsigned char high_bit = bitarray->buf[(bit_index/8)+8];
   high_bit >>= bit_index % 8;
   high_bit <<= bit_index % 8;
-  /*if((bit_index % 8) != 0)*/
+  if((bit_index % 8) != 0) {
     bitarray->buf[(bit_index/8)+8] = high_bit | ((value >> (64 - bit_index % 8)) & -(bit_index % 8 != 0));
+	}
 }
 
 void bitarray_rotate_slow(bitarray_t *const bitarray,
