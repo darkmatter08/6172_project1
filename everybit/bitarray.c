@@ -113,6 +113,26 @@ static char bitmask(const size_t bit_index);
 
 // ******************************* Functions ********************************
 
+// const unsigned char BitReverseTable256[256] = {
+//   #   define R2(n)     n,     n + 2*64,     n + 1*64,     n + 3*64
+//   #   define R4(n) R2(n), R2(n + 2*16), R2(n + 1*16), R2(n + 3*16)
+//   #   define R6(n) R4(n), R4(n + 2*4 ), R4(n + 1*4 ), R4(n + 3*4 )
+//       R6(0), R6(2), R6(1), R6(3)
+// };
+
+// inline static uint64_t reverse_lookup (uint64_t to_reverse) {
+//   uint64_t reverse =
+//       ((uint64_t)(BitReverseTable256[to_reverse & 0xff]) << 56) |
+//       ((uint64_t)(BitReverseTable256[(to_reverse >> 8) & 0xff]) << 48) |
+//       ((uint64_t)(BitReverseTable256[(to_reverse >> 16) & 0xff]) << 40) |
+//       ((uint64_t)(BitReverseTable256[(to_reverse >> 24) & 0xff]) << 32) |
+//       ((uint64_t)(BitReverseTable256[(to_reverse >> 32) & 0xff]) << 24) |
+//       ((uint64_t)(BitReverseTable256[(to_reverse >> 40) & 0xff]) << 16) |
+//       ((uint64_t)(BitReverseTable256[(to_reverse >> 48) & 0xff]) << 8) |
+//       ((uint64_t)(BitReverseTable256[(to_reverse >> 56) & 0xff]));
+//   return reverse;
+// }
+
 bitarray_t *bitarray_new(const size_t bit_sz) {
   // Allocate an underlying buffer of ceil(bit_sz/8) bytes.
   char *const buf = calloc(1, bit_sz / 8 + ((bit_sz % 8 == 0) ? 0 : 1));
@@ -283,21 +303,21 @@ void bitarray_reverse_slow(bitarray_t *const bitarray,
   }
 }
 
-/*void bitarray_reverse_norecurse(bitarray_t *const bitarray,*/
-                      /*size_t bit_offset,*/
-                      /*size_t bit_length) {*/
-  /*while(bit_length >= 2*WORDSIZE){*/
-    /*uint64_t beg = bitarray_get_word(bitarray, bit_offset);*/
-    /*uint64_t end = bitarray_get_word(bitarray, bit_offset + bit_length - WORDSIZE);*/
+// void bitarray_reverse_norecurse(bitarray_t *const bitarray,
+//                       size_t bit_offset,
+//                       size_t bit_length) {
+//   while(bit_length >= 2*WORDSIZE){
+//     uint64_t beg = bitarray_get_word(bitarray, bit_offset);
+//     uint64_t end = bitarray_get_word(bitarray, bit_offset + bit_length - WORDSIZE);
 
-    /*bitarray_set_word(bitarray, bit_offset, reverse_lookup(end));*/
-    /*bitarray_set_word(bitarray, bit_offset + bit_length - WORDSIZE, reverse_lookup(beg));*/
+//     bitarray_set_word(bitarray, bit_offset, reverse_lookup(end));
+//     bitarray_set_word(bitarray, bit_offset + bit_length - WORDSIZE, reverse_lookup(beg));
 
-    /*bit_offset += WORDSIZE;*/
-    /*bit_length -= 2*WORDSIZE;*/
-  /*}*/
-  /*bitarray_reverse_slow(bitarray, bit_offset, bit_length);*/
-/*}*/
+//     bit_offset += WORDSIZE;
+//     bit_length -= 2*WORDSIZE;
+//   }
+//   bitarray_reverse_slow(bitarray, bit_offset, bit_length);
+// }
 
 
 void bitarray_reverse_fast(bitarray_t *const bitarray,
@@ -339,35 +359,14 @@ void bitarray_rotate(bitarray_t *const bitarray,
   bitarray_rotate_fast(bitarray, bit_offset, bit_length, bit_right_amount);
 }
 
-const unsigned char BitReverseTable256[256] = {
-  #   define R2(n)     n,     n + 2*64,     n + 1*64,     n + 3*64
-  #   define R4(n) R2(n), R2(n + 2*16), R2(n + 1*16), R2(n + 3*16)
-  #   define R6(n) R4(n), R4(n + 2*4 ), R4(n + 1*4 ), R4(n + 3*4 )
-      R6(0), R6(2), R6(1), R6(3)
-};
 
-uint64_t reverse_lookup (uint64_t to_reverse) {
-  uint64_t reverse =
-      ((uint64_t)(BitReverseTable256[to_reverse & 0xff]) << 56) |
-      ((uint64_t)(BitReverseTable256[(to_reverse >> 8) & 0xff]) << 48) |
-      ((uint64_t)(BitReverseTable256[(to_reverse >> 16) & 0xff]) << 40) |
-      ((uint64_t)(BitReverseTable256[(to_reverse >> 24) & 0xff]) << 32) |
-      ((uint64_t)(BitReverseTable256[(to_reverse >> 32) & 0xff]) << 24) |
-      ((uint64_t)(BitReverseTable256[(to_reverse >> 40) & 0xff]) << 16) |
-      ((uint64_t)(BitReverseTable256[(to_reverse >> 48) & 0xff]) << 8) |
-      ((uint64_t)(BitReverseTable256[(to_reverse >> 56) & 0xff]));
-  return reverse;
-}
-
-uint64_t reverse_lookup_fast(uint64_t to_reverse) {
-  uint64_t v = to_reverse;
-
-  v = ((v >> 1) & 0x5555555555555555) | ((v & 0x5555555555555555) << 1);
-  v = ((v >> 2) & 0x3333333333333333) | ((v & 0x3333333333333333) << 2);
-  v = ((v >> 4) & 0x0F0F0F0F0F0F0F0F) | ((v & 0x0F0F0F0F0F0F0F0F) << 4);
-  v = ((v >> 8) & 0x00FF00FF00FF00FF) | ((v & 0x00FF00FF00FF00FF) << 8);
-  v = ((v >> 16) & 0x0000FFFF0000FFFF) | ((v & 0x0000FFFF0000FFFF) << 16);
-  /*[>v = ((v >> 32) & 0x00000000FFFFFFFF) | ((v & 0x00000000FFFFFFFF) << 32);<]*/
-  v = (v >> 32) | (v << 32);
-  return v;
-}
+// uint64_t reverse_lookup(uint64_t v) {
+//   v = ((v >> 1) & 0x5555555555555555) | ((v & 0x5555555555555555) << 1);
+//   v = ((v >> 2) & 0x3333333333333333) | ((v & 0x3333333333333333) << 2);
+//   v = ((v >> 4) & 0x0F0F0F0F0F0F0F0F) | ((v & 0x0F0F0F0F0F0F0F0F) << 4);
+//   v = ((v >> 8) & 0x00FF00FF00FF00FF) | ((v & 0x00FF00FF00FF00FF) << 8);
+//   v = ((v >> 16) & 0x0000FFFF0000FFFF) | ((v & 0x0000FFFF0000FFFF) << 16);
+//   /*[>v = ((v >> 32) & 0x00000000FFFFFFFF) | ((v & 0x00000000FFFFFFFF) << 32);<]*/
+//   v = (v >> 32) | (v << 32);
+//   return v;
+// }

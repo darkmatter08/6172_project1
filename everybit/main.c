@@ -58,10 +58,12 @@ int main(int argc, char **argv) {
         retval = EXIT_SUCCESS;
         goto cleanup;
       case 'r':
-        // -r runs the rotation performance test.
         printf("---- RESULTS ----\n");
-        printf("Elapsed execution time: %.6fs\n",
-            longrunning_rotation());
+        for (int i = 0; i < 3; i++){
+          // -r runs the rotation performance test.
+          printf("Elapsed execution time: %.6fs\n",
+              longrunning_rotation());
+        }
         printf("---- END RESULTS ----\n");
 
         retval = EXIT_SUCCESS;
