@@ -50,6 +50,9 @@ size_t bitarray_get_bit_sz(const bitarray_t *const bitarray);
 // index.
 bool bitarray_get(const bitarray_t *const bitarray, const size_t bit_index);
 
+
+// Retrieves a machine word at an arbitrary offset, bit_index. 
+// bit_index + WORDSIZE cannot go past the end of the array.
 uint64_t bitarray_get_word(const bitarray_t *const bitarray, const size_t bit_index);
 
 // Indexes into a bit array, setting the bit at the specified zero-based index.
@@ -57,11 +60,12 @@ void bitarray_set(bitarray_t *const bitarray,
                   const size_t bit_index,
                   const bool value);
 
+// Sets the machine word at the given bit_index.
 void bitarray_set_word(bitarray_t *const bitarray,
                   const size_t bit_index,
                   const uint64_t value);
 
-// Swaps the values as the given indeces in the bitarray
+// Swaps the values at the given indices in the bitarray, bit by bit
 void bitarray_swap(bitarray_t *const bitarray, const size_t index1, const size_t index2);
 
 // Reverses a subarray
@@ -69,17 +73,12 @@ void bitarray_reverse(bitarray_t *const birarry,
                       const size_t bit_offset,
                       const size_t bit_length);
 
-void bitarray_reverse_slow(bitarray_t *const bitarray,
+// Reverses a subarray at the bit level. Used only when the subarray 
+// contains less than two machine words.
+void bitarray_reverse_bit_level(bitarray_t *const bitarray,
                       const size_t bit_offset,
                       const size_t bit_length);
 
-void bitarray_reverse_fast(bitarray_t *const bitarray,
-                      const size_t bit_offset,
-                      const size_t bit_length);
-
-//void bitarray_reverse_norecurse(bitarray_t *const bitarray,
-                      //size_t bit_offset,
-                      //size_t bit_length);
 // Rotates a subarray.
 //
 // bit_offset is the index of the start of the subarray
@@ -104,15 +103,6 @@ void bitarray_reverse_fast(bitarray_t *const bitarray,
 // bitarray_rotate(ba, 2, 5, 2) rotates the third through seventh
 // (inclusive) bits right two places.  After the rotation, ba contains the
 // byte 0b10110100.
-void bitarray_rotate_slow(bitarray_t *const bitarray,
-                     const size_t bit_offset,
-                     const size_t bit_length,
-                     const ssize_t bit_right_amount);
-
-void bitarray_rotate_fast(bitarray_t *const bitarray,
-                     const size_t bit_offset,
-                     const size_t bit_length,
-                     const ssize_t bit_right_amount);
 
 void bitarray_rotate(bitarray_t *const bitarray,
                      const size_t bit_offset,
@@ -120,6 +110,6 @@ void bitarray_rotate(bitarray_t *const bitarray,
                      const ssize_t bit_right_amount);
 
 uint64_t reverse_lookup (uint64_t to_reverse);
-uint64_t reverse_lookup_fast (uint64_t to_reverse);
+// uint64_t reverse_lookup_fast (uint64_t to_reverse);
 
 #endif  // BITARRAY_H
