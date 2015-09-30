@@ -225,7 +225,7 @@ void bitarray_reverse(bitarray_t *const bitarray,
     // Now we save the garbage
     
     uint64_t first_word_tail_length = (WORDSIZE - bit_offset % WORDSIZE);
-    uint64_t last_word_head_length = (bit_offset + bit_length) % WORDSIZE)
+    uint64_t last_word_head_length = (bit_offset + bit_length) % WORDSIZE;
     uint64_t first_word_front = (first_word >> first_word_tail_length) << first_word_tail_length;
     uint64_t last_word_end = (last_word << last_word_head_length) >> last_word_head_length;
     // Word level swaps
@@ -249,29 +249,44 @@ void bitarray_reverse(bitarray_t *const bitarray,
     int length_last = WORDSIZE - last_word_head_length;
     uint64_t diff = length_first - length_last;
     if (diff > 0) {
-      int counter = (bit_offset + bit_length) / WORDSIZE;
-      uint64_t saved_back = 0;
-      while (counter-- >= bit_offset) {
-        uint64_t current = bitarray_get_word(bitarray, counter * WORDSIZE);
-        saved_back = (current >> (WORDSIZE-diff)) << WORDSIZE-diff;
+      int counter = bit_offset;
+      uint64_t last_saved_back = 0;
+      uint64_t current_saved_back = 0;
+      while (counter <= bit_offset + bit_length) { // <= or <? 
+        uint64_t current = bitarray_get_word(bitarray, (counter >> 6) << 6);
+        current_saved_back = (current << (WORDSIZE-diff));
         current >>= diff;
-        bitarray_set_word(bitarray, current|saved_back);
+        bitarray_set_word(bitarray, (counter >> 6) << 6, current|last_saved_back);
+        last_saved_back = current_saved_back;
+        counter += WORDSIZE;
       }
     } else if (diff < 0) {
       diff *= -1;
-      int counter = ;
-      uint
+      int counter = bit_offset;
+      uint64_t last_saved_front = 0;
+      uint64_t current_saved_front = 0;
+      while (counter <= bit_offset + bit_length) { // <= or <? 
+        uint64_t current = bitarray_get_word(bitarray, (counter >> 6) << 6);
+        current_saved_front = (current >> (WORDSIZE-diff));
+        current <<= diff;
+        bitarray_set_word(bitarray, (counter >> 6) << 6, current|last_saved_front);
+        last_saved_front = current_saved_front;
+        counter += WORDSIZE;
+      }
     }
 
     // Restore the garbage
-    uint64_t new_first_word = (first_word << (bit_offset % 8)) >> (bit_offset % 8);
-    new_first_word |= first_word_front;
-    size_t y = 8 - (bit_offset + bit_length - last_word_start) % 8;
-    uint64_t new_last_word = (last_word >> y) << y;
-    new_last_word |= last_word_end;
+    uint64_t fixed_first_word = first_word_front | ((bitarray_get_word(bitarray, first_word_start) << (length_first)) >> length_first);
+    uint64_t fixed_last_word = last_word_end | ((bitarray_get_word(bitarray, last_word_start) >> (length_last)) << length_last);
 
-    bitarray_set_word(bitarray, first_word_start, new_first_word);
-    bitarray_set_word(bitarray, last_word_start, new_last_word);
+    // uint64_t new_first_word = (first_word << (bit_offset % WORDSIZE)) >> (bit_offset % WORDSIZE);
+    // new_first_word |= first_word_front;
+    // size_t y = WORDSIZE - (bit_offset + bit_length - last_word_start) % WORDSIZE;
+    // uint64_t new_last_word = (last_word >> y) << y;
+    // new_last_word |= last_word_end;
+
+    bitarray_set_word(bitarray, first_word_start, fixed_first_word);
+    bitarray_set_word(bitarray, last_word_start, fixed_last_word);
   }      
 }
 /*
