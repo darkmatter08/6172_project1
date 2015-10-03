@@ -4,7 +4,7 @@ is the reverse operation.  In our beta, this algorithm was done at the bit level
 in any given subarray, we would swap the bits and array in pairs.  For the final,
 we improved this algorithm to operate at word level.
 
-Given a sub-bitarray containing at least 2 machine words, we swap at the word level.
+Given a sub-bitarray containing at least as large as 2 machine words, we swap at the word level.
 Reversals are performed using a BitReversal lookup table, based on an algorithm found
 at --*****LINK*****--, but extended for 64-bit words.  Reversals continue recursively on the
 remaing unswapped portion of the subarry until we reach the base case of having
@@ -15,8 +15,16 @@ Our beta performance was on the order of 0.001 seconds; our final submission cut
 down to 76 microsoeconds on awsrun, which is within a factor of 2 of the benchmark.  
 Reading annotations in perf and cachegrind proved to be difficult for improving performance,
 since our branch misses were noticeably low. We additionally implemented a different lookup
-algorithm, also from the Standford source; however, what was should have been a faster(5 log n)
+algorithm, also from the Standford source; however, what was have been a faster(5 log n)
 method actually turned out to be slower than the lookup - annotations showed minimal performance
 differences between the two algorithms.
 
-Our main motivations
+Before the final, we attempted to further improve the word-level swap.  As written, our code
+performs shifts whenever a single machine word is set.  To improve, we attempted to have a more
+generalized case for subarray reversal:  given a subarray, we take the entirety of the machine words
+containing it, swap each whole word, reverse in place, approrpiately shift all of hte words left or right,
+and then restore the bits which should not have been reversed.   This method would have simplified our
+recursive algorithm to one iwithn minimal operations that only passes through the subarray twice. Unfortunately, it 
+proved to be difficult to implement as the deadline approached, and we were unable to debug it for correctness in time.
+correct.
+
