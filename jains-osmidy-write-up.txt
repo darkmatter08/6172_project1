@@ -6,25 +6,36 @@ we improved this algorithm to operate at word level.
 
 Given a sub-bitarray containing at least as large as 2 machine words, we swap at the word level.
 Reversals are performed using a BitReversal lookup table, based on an algorithm found
-at --*****LINK*****--, but extended for 64-bit words.  Reversals continue recursively on the
-remaing unswapped portion of the subarry until we reach the base case of having
-a bitarray lacking 2 whole machine words; here, we revert to the bit swap from the beta.
+at <https://graphics.stanford.edu/~seander/bithacks.html#BitReverseTable>, but extended for 64-bit words.
+Reversals continue recursively on the remaing unswapped portion of the subarry until we reach the base case of having
+a bitarray with less than 2 whole machine words; here, we revert to the bit-level swap reversal from the beta.
 
 As implemented, our code has complete correctness, passing all tests used in the beta.
 Our beta performance was on the order of 0.001 seconds; our final submission cut runtime
 down to 76 microsoeconds on awsrun, which is within a factor of 2 of the benchmark.  
-Reading annotations in perf and cachegrind proved to be difficult for improving performance,
-since our branch misses were noticeably low. We additionally implemented a different lookup
-algorithm, also from the Standford source; however, what was have been a faster(5 log n)
-method actually turned out to be slower than the lookup - annotations showed minimal performance
-differences between the two algorithms.
+Reports from 'perf' and 'valgrind' proved to be unhelpful in further improving performance, as branch mispredict rates 
+were negligible, and cache misses were similarly negligible. 
 
-Before the final, we attempted to further improve the word-level swap.  As written, our code
-performs shifts whenever a single machine word is set.  To improve, we attempted to have a more
-generalized case for subarray reversal:  given a subarray, we take the entirety of the machine words
-containing it, swap each whole word, reverse in place, approrpiately shift all of hte words left or right,
-and then restore the bits which should not have been reversed.   This method would have simplified our
-recursive algorithm to one iwithn minimal operations that only passes through the subarray twice. Unfortunately, it 
-proved to be difficult to implement as the deadline approached, and we were unable to debug it for correctness in time.
-correct.
+Several strategies were used in an attempt to enhance performance:
 
+1) A different, theoretically faster, reversal algorithm was implemented. The new algorithm
+did not use a look up table but instead reversed in place. With no look up table to fall out of cache, and fewer ops,
+we expected faster performance, but observed slower performance.  
+<https://graphics.stanford.edu/~seander/bithacks.html#ReverseParallel>. The code was analyzed extensively, 
+by looking at the generated assembly from GCC, by looking at performance using the callgrind tool (part of valgrind).
+Although the newer method had fewer assembly ops, it was slower. 
+There was also a negligible difference in instructions/cycle. 
+We speculate the cause to be that the newer method's code cannot be pipelined/speculatively executed. 
+
+2) Using the inline keyword. This method yielded practically no changes when compiled because an -O3 optimized build 
+already does most inlining automatically. 
+
+We also attempted to further improve the word-level reversal. As written, the code can set machine words at arbitrary
+offsets. This is accomplished by reading a machine word and the byte following the machine word. Shifts are applied to
+discard bits not within the 64 bits following the specified offset. This means every word-write at the machine level 
+requires two data fetches. To improve performance, we attempted to read and write as frequently as possible on word
+boundaries. This would alter the strategy for subarray reversal:  given a subarray, we take the entirety of the machine 
+words containing it, swap each whole word, reverse in place, appropriately shift all of the words left or right, and 
+then restore the bits which should not have been reversed. This method would have simplified our recursive algorithm to 
+one with minimal operations that only passes through the subarray twice. Unfortunately, it proved to be difficult to 
+implement as the deadline approached, and we were unable to debug it for correctness in time.
